@@ -1,0 +1,5 @@
+# ColorMesh robots.txt
+User-agent: *
+Allow: /
+
+Sitemap: https://colormesh.net/sitemap.xml
