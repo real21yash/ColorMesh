@@ -62,7 +62,7 @@ export function ColorSidebar({
   };
 
   return (
-    <aside className="w-full bg-card border-l border-border flex flex-col h-full overflow-y-auto">
+    <aside className="w-full bg-card flex flex-col min-h-full">
       {/* Header */}
       <div className="p-4 md:p-6 border-b border-border flex-shrink-0">
         <h2 className="text-lg font-semibold text-foreground">Colors</h2>
@@ -261,7 +261,7 @@ export function ColorSidebar({
 
       {/* Export Buttons */}
       {flatColors.length > 0 && (
-        <div className="p-3 md:p-4 border-t border-border space-y-2 flex-shrink-0">
+        <div className="p-3 md:p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] border-t border-border space-y-2 flex-shrink-0">
           <Button
             onClick={() => onExport('json')}
             className="w-full text-sm"

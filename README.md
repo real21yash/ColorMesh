@@ -1,93 +1,89 @@
 # ColorMesh
 
-ColorMesh is a browser-based tool for extracting, sampling, and building color palettes from any image. Drop in an image, sample it on an adjustable grid, and pull the exact colors you need into a shareable palette.
+Extract, sample, and build color palettes from any image, right in the browser.
 
-**Live site:** [colormesh.net](https://colormesh.net)
-
-![ColorMesh](public/logo.svg)
+ColorMesh is a fully client-side app — images never leave your machine, and
+running it locally requires no accounts, API keys, or backend services.
 
 ## Features
 
-- Drag-and-drop or click-to-upload images (PNG, JPEG, WEBP, GIF, BMP, SVG, AVIF)
-- Adjustable sampling grid (2x2 up to 12x12), sampled with k-means clustering for accurate dominant colors per cell
-- Click any grid cell to inspect its HEX/RGB values and add it straight to your palette
-- Tap-to-toggle color picker in the sidebar — no need to open every swatch one at a time
-- Build a 6-color palette, lock colors you want to keep, and randomize the rest
-- Export sampled colors as JSON or CSV
-- Export your palette as a formatted text file or a polished PNG image
-- Light/dark theme, fully responsive (desktop sidebar + mobile drawer)
+- Drag-and-drop, click-to-browse, or eyedropper — three ways to grab a color
+- Adjustable sampling grid (2x2 to 12x12), each cell showing its dominant color
+- Native `EyeDropper` API support for exact, pixel-level color picks (falls back
+  to click-to-sample on browsers without it, e.g. Firefox/Safari)
+- Click any grid cell to inspect its HEX/RGB and add it to your palette
+- Build a 6-color palette, lock favorites, and randomize the rest
+- Export sampled colors as JSON/CSV, or export your palette as text/PNG
+- Light/dark theme, and a skippable first-time walkthrough
 
-## Tech Stack
+## Prerequisites
 
-- [Next.js](https://nextjs.org) (App Router, static export)
-- [React](https://react.dev) + TypeScript
-- [Tailwind CSS](https://tailwindcss.com)
-- [shadcn/ui](https://ui.shadcn.com) components on top of [Radix UI](https://www.radix-ui.com)
-- [lucide-react](https://lucide.dev) icons
+- [Node.js](https://nodejs.org/) 18.18 or newer
+- npm (bundled with Node) or [pnpm](https://pnpm.io/) — both lockfiles are provided
 
 ## Getting Started
 
-### Prerequisites
-
-- Node.js 18.18 or newer
-- npm, pnpm, or yarn
-
-### Installation
-
 ```bash
-git clone https://github.com/real21yash/ColorMesh.git
-cd ColorMesh
+git clone <this-repo-url>
+cd colormesh
 npm install
-```
-
-### Run locally
-
-```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser. The page hot-reloads as you edit files.
+Open [http://localhost:3000](http://localhost:3000) to see the app.
 
-### Build for production
+## Environment Variables
 
-This project is configured for static export (`output: 'export'` in `next.config.js`), so it builds to plain static files that can be hosted anywhere.
+ColorMesh needs **no secrets or API keys** to run — it's entirely client-side.
+Copy `.env.example` to `.env.local` if you want to customize the optional SEO
+metadata:
+
+```bash
+cp .env.example .env.local
+```
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `NEXT_PUBLIC_SITE_URL` | No | Public URL used for canonical/Open Graph metadata. Defaults to `http://localhost:3000`. |
+| `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` | No | Google Search Console verification code, only needed if you deploy and verify a domain. |
+
+## Building for Production
+
+This project is configured for static export (`output: 'export'` in
+`next.config.js`), so the build produces a folder of static files you can
+host anywhere (Nginx, Caddy, Vercel, Netlify, GitHub Pages, S3, etc.):
 
 ```bash
 npm run build
 ```
 
-The output is written to the `out/` directory. You can preview it locally with any static file server, e.g.:
+The static site is generated in the `out/` directory. Serve it with any static
+file server, for example:
 
 ```bash
 npx serve out
 ```
 
-### Deploying
-
-Because it's a static export, ColorMesh can be deployed to any static host — Cloudflare Pages, Vercel, Netlify, GitHub Pages, S3, etc. Just point your host at the `out/` directory after running `npm run build`.
-
-Before deploying your own copy, you'll probably want to:
-
-- Update `baseUrl` in `app/layout.tsx` to your own domain
-- Update `public/sitemap.xml` and `public/robots.txt` to match your domain
-- Add your own `public/og-image.png` (1200x630) for social share previews
-- Swap out `public/logo.svg` and the icon files in `public/` for your own branding
-- Update the links in the "About" dialog (`components/controls-toolbar.tsx`)
+Before deploying to a real domain, update:
+- `NEXT_PUBLIC_SITE_URL` in your environment
+- The placeholder domain in `public/robots.txt` and `public/sitemap.xml`
+  (these are static files and aren't templated at build time)
 
 ## Project Structure
 
-```
-app/                 Next.js App Router entry (layout, page, global styles)
-components/          App components (canvas, sidebar, toolbar)
-components/ui/       shadcn/ui primitives
-lib/                 Color sampling/export utilities
-public/              Static assets (icons, logo, robots.txt, sitemap.xml)
-```
+- `app/` — Next.js App Router entry point and global layout/metadata
+- `components/` — application UI (canvas, toolbar, sidebar, onboarding) and
+  `components/ui/` (shadcn/ui primitives)
+- `lib/` — color sampling/export utilities (k-means dominant-color extraction,
+  HEX/RGB conversion, JSON/CSV/PNG export)
 
-## Contributing
+## Known Gaps
 
-Issues and pull requests are welcome. If you're planning a larger change, consider opening an issue first to discuss what you'd like to do.
+- `app/layout.tsx` references `/og-image.png` for social share previews, but
+  no such file exists in `public/`. Add a 1200×630 PNG there (or edit the
+  `openGraph`/`twitter` metadata in `app/layout.tsx`) before relying on link
+  previews.
 
-## License
+## Learn More
 
-Licensed under the [MIT License](LICENSE).
+- [Next.js Documentation](https://nextjs.org/docs)

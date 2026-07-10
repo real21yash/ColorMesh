@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useRef, useEffect, useState } from 'react';
-import { getAverageColor, isAcceptedImageFile, type ColorSample } from '@/lib/color-utils';
-import { UploadCloud } from 'lucide-react';
+import { getAverageColor, isAcceptedImageFile, ACCEPTED_IMAGE_EXTENSIONS, type ColorSample } from '@/lib/color-utils';
+import { UploadCloud, RefreshCw, X } from 'lucide-react';
 
 interface ImageCanvasProps {
   imageSrc: string | null;
@@ -13,7 +13,10 @@ interface ImageCanvasProps {
   onCellSelect: (cell: { row: number; col: number } | null) => void;
   colors: ColorSample[][];
   onImageUpload: (file: File) => void;
+  onImageClear: () => void;
   selectedPalette?: ColorSample[];
+  pickerActive?: boolean;
+  onColorPicked?: (color: ColorSample) => void;
 }
 
 export function ImageCanvas({
@@ -25,11 +28,15 @@ export function ImageCanvas({
   onCellSelect,
   colors,
   onImageUpload,
+  onImageClear,
   selectedPalette = [],
+  pickerActive = false,
+  onColorPicked,
 }: ImageCanvasProps) {
   const imageCanvasRef = useRef<HTMLCanvasElement>(null);
   const gridCanvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isLoading, setIsLoading] = useState(false);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
@@ -60,12 +67,30 @@ export function ImageCanvas({
 
     const file = e.dataTransfer.files?.[0];
     if (!file) return;
+    handleFile(file, 'drop');
+  };
 
+  const handleBrowseClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  // Shared validate-and-upload path for both drag-drop and the file input
+  const handleFile = (file: File, source: 'drop' | 'upload') => {
     if (isAcceptedImageFile(file)) {
       onImageUpload(file);
     } else {
-      alert('Please drop a PNG, JPEG, WEBP, GIF, BMP, SVG, or AVIF file');
+      alert(`Please ${source} a PNG, JPEG, WEBP, GIF, BMP, SVG, or AVIF file`);
     }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    handleFile(file, 'upload');
+
+    // Reset input so the same file can be selected again
+    e.target.value = '';
   };
 
   // Load image
@@ -210,64 +235,62 @@ export function ImageCanvas({
     }
   }, [showGrid, colors, selectedCell, selectedPalette]);
 
-  // Click (fixed math + toggle)
-  const handleCanvasClick = (e: React.MouseEvent) => {
-    if (!showGrid || colors.length === 0) return;
+  // Shared math: convert a mouse event to a {row, col} grid cell
+  const getCellFromEvent = (e: React.MouseEvent): { row: number; col: number } | null => {
+    if (!showGrid || colors.length === 0) return null;
 
     const canvas = gridCanvasRef.current;
-    if (!canvas) return;
+    if (!canvas) return null;
 
     const rect = canvas.getBoundingClientRect();
-
     const x = (e.clientX - rect.left) * (canvas.width / rect.width);
     const y = (e.clientY - rect.top) * (canvas.height / rect.height);
 
     const rows = colors.length;
     const cols = colors[0].length;
-
     const cellWidth = canvas.width / cols;
     const cellHeight = canvas.height / rows;
 
     const col = Math.floor(x / cellWidth);
     const row = Math.floor(y / cellHeight);
 
-    if (row >= 0 && row < rows && col >= 0 && col < cols) {
-      if (selectedCell && selectedCell.row === row && selectedCell.col === col) {
-        onCellSelect(null);
-      } else {
-        onCellSelect({ row, col });
-      }
-    }
+    return row >= 0 && row < rows && col >= 0 && col < cols ? { row, col } : null;
+  };
+
+  // Click (fixed math + toggle)
+  const handleCanvasClick = (e: React.MouseEvent) => {
+    const cell = getCellFromEvent(e);
+    if (!cell) return;
+
+    const isSameCell = selectedCell?.row === cell.row && selectedCell?.col === cell.col;
+    onCellSelect(isSameCell ? null : cell);
   };
 
   // Right click copy
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (!showGrid || colors.length === 0) return;
+    const cell = getCellFromEvent(e);
+    if (!cell) return;
 
-    const canvas = gridCanvasRef.current;
+    const color = colors[cell.row]?.[cell.col];
+    if (color) navigator.clipboard.writeText(color.hex);
+  };
+
+  // Eyedropper fallback: sample the exact pixel under the cursor, no grid involved
+  const handlePickerClick = (e: React.MouseEvent) => {
+    if (!pickerActive || !onColorPicked) return;
+
+    const canvas = imageCanvasRef.current;
     if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
+    const x = Math.floor((e.clientX - rect.left) * (canvas.width / rect.width));
+    const y = Math.floor((e.clientY - rect.top) * (canvas.height / rect.height));
 
-    const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-    const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+    if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return;
 
-    const rows = colors.length;
-    const cols = colors[0].length;
-
-    const cellWidth = canvas.width / cols;
-    const cellHeight = canvas.height / rows;
-
-    const col = Math.floor(x / cellWidth);
-    const row = Math.floor(y / cellHeight);
-
-    if (row >= 0 && row < rows && col >= 0 && col < cols) {
-      const color = colors[row]?.[col];
-      if (color) {
-        navigator.clipboard.writeText(color.hex);
-      }
-    }
+    const color = getAverageColor(canvas, x, y, 1, 1);
+    onColorPicked(color);
   };
 
   const displayWidth = canvasSize.width * fitScale;
@@ -288,6 +311,14 @@ export function ImageCanvas({
         cursor: showGrid ? 'pointer' : 'default',
       }}
     >
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={ACCEPTED_IMAGE_EXTENSIONS}
+        onChange={handleFileSelect}
+        className="hidden"
+      />
+
       {isDraggingOver && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-background/80 backdrop-blur-sm pointer-events-none">
           <UploadCloud className="w-10 h-10 text-accent" />
@@ -296,7 +327,27 @@ export function ImageCanvas({
       )}
 
       {imageSrc && (
-        <div className="flex items-center justify-center w-full h-full">
+        <>
+          <div className="absolute top-3 right-3 z-20 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleBrowseClick}
+              title="Upload a different image"
+              className="flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium bg-background/90 border border-border text-foreground shadow-sm backdrop-blur-sm hover:bg-accent/25 hover:border-accent/60 transition-colors"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Change image</span>
+            </button>
+            <button
+              type="button"
+              onClick={onImageClear}
+              title="Remove image"
+              className="flex items-center justify-center h-8 w-8 rounded-md bg-background/90 border border-border text-foreground shadow-sm backdrop-blur-sm hover:bg-destructive/20 hover:border-destructive/60 hover:text-destructive transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <div className="flex items-center justify-center w-full h-full">
           <div
             style={{
               position: 'relative',
@@ -336,20 +387,34 @@ export function ImageCanvas({
               }}
               onClick={handleCanvasClick}
             />
+
+            {/* Eyedropper overlay — sits above both canvases, captures the pick click */}
+            {pickerActive && (
+              <div
+                className="absolute inset-0 z-20 cursor-crosshair"
+                onClick={handlePickerClick}
+                title="Click to pick a color"
+              />
+            )}
           </div>
-        </div>
+          </div>
+        </>
       )}
 
       {!imageSrc && (
-        <div className="text-center flex flex-col items-center gap-3 px-8 py-12 rounded-xl border-2 border-dashed border-border">
+        <button
+          type="button"
+          onClick={handleBrowseClick}
+          className="text-center flex flex-col items-center gap-3 px-8 py-12 rounded-xl border-2 border-dashed border-border bg-transparent hover:border-accent hover:bg-accent/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 transition-colors cursor-pointer"
+        >
           <UploadCloud className="w-8 h-8 text-muted-foreground" />
           <div>
             <p className="text-foreground font-medium mb-1">No image selected</p>
             <p className="text-sm text-muted-foreground">
-              Drag & drop an image here, or use Upload above
+              Click to browse, or drag &amp; drop an image here
             </p>
           </div>
-        </div>
+        </button>
       )}
 
       {isLoading && (

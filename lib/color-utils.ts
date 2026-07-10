@@ -61,6 +61,40 @@ export function rgbToString(r: number, g: number, b: number): string {
 }
 
 /**
+ * Convert a HEX color string to RGB values
+ */
+export function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const clean = hex.replace('#', '');
+  const full =
+    clean.length === 3
+      ? clean.split('').map((c) => c + c).join('')
+      : clean;
+  const r = parseInt(full.substring(0, 2), 16) || 0;
+  const g = parseInt(full.substring(2, 4), 16) || 0;
+  const b = parseInt(full.substring(4, 6), 16) || 0;
+  return { r, g, b };
+}
+
+type RGB = [number, number, number];
+
+/** Index of the centroid closest to `pixel` (squared Euclidean distance) */
+function nearestCentroidIndex(pixel: RGB, centroids: RGB[]): number {
+  let minDistance = Infinity;
+  let nearest = 0;
+  for (let j = 0; j < centroids.length; j++) {
+    const dr = pixel[0] - centroids[j][0];
+    const dg = pixel[1] - centroids[j][1];
+    const db = pixel[2] - centroids[j][2];
+    const distance = dr * dr + dg * dg + db * db;
+    if (distance < minDistance) {
+      minDistance = distance;
+      nearest = j;
+    }
+  }
+  return nearest;
+}
+
+/**
  * Get dominant color from an image canvas in a specific cell using k-means clustering
  */
 export function getDominantColor(
@@ -77,19 +111,13 @@ export function getDominantColor(
   const data = imageData.data;
 
   // Downsample: extract every 5th pixel (i += 20 instead of i += 4)
-  const pixels: [number, number, number][] = [];
+  const pixels: RGB[] = [];
   for (let i = 0; i < data.length; i += 20) {
     pixels.push([data[i], data[i + 1], data[i + 2]]);
   }
 
   if (pixels.length === 0) {
-    return {
-      hex: '#000000',
-      rgb: 'rgb(0, 0, 0)',
-      r: 0,
-      g: 0,
-      b: 0,
-    };
+    return { hex: '#000000', rgb: 'rgb(0, 0, 0)', r: 0, g: 0, b: 0 };
   }
 
   // K-means clustering with k=3
@@ -97,7 +125,7 @@ export function getDominantColor(
   const maxIterations = 10;
 
   // Initialize centroids randomly from pixels
-  const centroids: [number, number, number][] = [];
+  const centroids: RGB[] = [];
   for (let i = 0; i < k; i++) {
     const randomIndex = Math.floor(Math.random() * pixels.length);
     centroids.push([...pixels[randomIndex]]);
@@ -106,31 +134,14 @@ export function getDominantColor(
   // Run k-means iterations
   for (let iteration = 0; iteration < maxIterations; iteration++) {
     // Assign pixels to nearest centroid
-    const assignments: number[] = new Array(pixels.length);
+    const assignments = new Array<number>(pixels.length);
     for (let i = 0; i < pixels.length; i++) {
-      let minDistance = Infinity;
-      let nearestCentroid = 0;
-
-      for (let j = 0; j < k; j++) {
-        const distance =
-          Math.pow(pixels[i][0] - centroids[j][0], 2) +
-          Math.pow(pixels[i][1] - centroids[j][1], 2) +
-          Math.pow(pixels[i][2] - centroids[j][2], 2);
-
-        if (distance < minDistance) {
-          minDistance = distance;
-          nearestCentroid = j;
-        }
-      }
-
-      assignments[i] = nearestCentroid;
+      assignments[i] = nearestCentroidIndex(pixels[i], centroids);
     }
 
     // Update centroids
     const counts = new Array(k).fill(0);
-    const sums: [number, number, number][] = Array(k)
-      .fill(null)
-      .map(() => [0, 0, 0]);
+    const sums: RGB[] = Array.from({ length: k }, () => [0, 0, 0]);
 
     for (let i = 0; i < pixels.length; i++) {
       const cluster = assignments[i];
@@ -151,28 +162,12 @@ export function getDominantColor(
     }
   }
 
-  // Count pixels in each cluster to find dominant one
+  // Count pixels in each cluster (using final centroids) to find the dominant one
   const clusterCounts = new Array(k).fill(0);
   for (let i = 0; i < pixels.length; i++) {
-    let minDistance = Infinity;
-    let nearestCentroid = 0;
-
-    for (let j = 0; j < k; j++) {
-      const distance =
-        Math.pow(pixels[i][0] - centroids[j][0], 2) +
-        Math.pow(pixels[i][1] - centroids[j][1], 2) +
-        Math.pow(pixels[i][2] - centroids[j][2], 2);
-
-      if (distance < minDistance) {
-        minDistance = distance;
-        nearestCentroid = j;
-      }
-    }
-
-    clusterCounts[nearestCentroid]++;
+    clusterCounts[nearestCentroidIndex(pixels[i], centroids)]++;
   }
 
-  // Get cluster with highest count
   let dominantCluster = 0;
   let maxCount = 0;
   for (let i = 0; i < k; i++) {
@@ -225,10 +220,9 @@ export function exportAsCSV(colors: ColorSample[][]): string {
 export const getAverageColor = getDominantColor;
 
 /**
- * Download file helper
+ * Trigger a browser download for a Blob
  */
-export function downloadFile(content: string, filename: string): void {
-  const blob = new Blob([content], { type: 'text/plain' });
+export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
@@ -237,4 +231,11 @@ export function downloadFile(content: string, filename: string): void {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+}
+
+/**
+ * Download file helper
+ */
+export function downloadFile(content: string, filename: string): void {
+  downloadBlob(new Blob([content], { type: 'text/plain' }), filename);
 }

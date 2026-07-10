@@ -3,13 +3,6 @@
   "version": "0.1.2",
   "private": true,
   "type": "module",
-  "description": "Extract, sample, and build color palettes from images in the browser.",
-  "license": "MIT",
-  "homepage": "https://colormesh.net",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/real21yash/ColorMesh"
-  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",

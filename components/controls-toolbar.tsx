@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Upload, Eye, EyeOff, Info, X } from 'lucide-react';
+import { Eye, EyeOff, Info, HelpCircle, Pipette } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { ThemeToggle } from '@/components/theme-toggle';
 import {
@@ -11,71 +11,45 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { ACCEPTED_IMAGE_EXTENSIONS, isAcceptedImageFile } from '@/lib/color-utils';
 
 interface ControlsToolbarProps {
   gridSize: number;
   onGridSizeChange: (size: number) => void;
   showGrid: boolean;
   onGridVisibilityChange: (visible: boolean) => void;
-  onImageUpload: (file: File) => void;
+  onRestartTour: () => void;
+  pickerActive: boolean;
+  onPickColor: () => void;
 }
+
+const ICON_BTN = 'h-9 w-9 md:h-10 md:w-10';
 
 export function ControlsToolbar({
   gridSize,
   onGridSizeChange,
   showGrid,
   onGridVisibilityChange,
-  onImageUpload,
+  onRestartTour,
+  pickerActive,
+  onPickColor,
 }: ControlsToolbarProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (isAcceptedImageFile(file)) {
-      onImageUpload(file);
-    } else {
-      alert('Please upload a PNG, JPEG, WEBP, GIF, BMP, SVG, or AVIF file');
-    }
-    
-    // Reset input so same file can be uploaded again
-    e.target.value = '';
+  const handleShowTour = () => {
+    setAboutOpen(false);
+    onRestartTour();
   };
 
   return (
     <div className="bg-card border-b border-border p-4 flex flex-col gap-4 md:flex-row md:items-center md:gap-6">
-      {/* Logo and Upload - always visible */}
+      {/* Logo - always visible */}
       <div className="flex items-center gap-3 md:gap-4 md:flex-shrink-0">
         <img 
           src="/logo.svg" 
           alt="Color MESH" 
           className="h-7 md:h-8 w-auto"
         />
-        
-        {/* Upload Button */}
-        <div className="flex flex-col gap-1">
-          <Button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2 bg-accent hover:bg-accent text-white dark:hover:brightness-110 transition-colors text-sm md:text-base"
-            size="sm"
-          >
-            <Upload className="w-4 h-4" />
-            <span className="hidden sm:inline">Upload Image</span>
-            <span className="sm:hidden">Upload</span>
-          </Button>
-          <p className="text-xs text-muted-foreground hidden md:block">or drag &amp; drop an image</p>
-        </div>
       </div>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept={ACCEPTED_IMAGE_EXTENSIONS}
-        onChange={handleFileSelect}
-        className="hidden"
-      />
 
       {/* Grid Size Slider */}
       <div className="flex-1 flex flex-col gap-2 md:flex-row md:items-center md:gap-4 min-w-0">
@@ -98,14 +72,25 @@ export function ControlsToolbar({
         </div>
       </div>
 
-      {/* Grid Visibility Toggle, About, and Theme Toggle */}
+      {/* Dropper, Grid Visibility, Theme, and About */}
       <div className="flex items-center gap-2 justify-end">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={onPickColor}
+          title="Pick a color from the image"
+          aria-pressed={pickerActive}
+          className={`${ICON_BTN} ${pickerActive ? 'bg-accent/25 border-accent/60 text-accent' : ''}`}
+        >
+          <Pipette className="w-4 h-4" />
+        </Button>
+
         <Button
           variant="outline"
           size="icon"
           onClick={() => onGridVisibilityChange(!showGrid)}
           title={showGrid ? 'Hide grid' : 'Show grid'}
-          className="h-9 w-9 md:h-10 md:w-10"
+          className={ICON_BTN}
         >
           {showGrid ? (
             <Eye className="w-4 h-4" />
@@ -114,18 +99,18 @@ export function ControlsToolbar({
           )}
         </Button>
 
+        {/* Theme Toggle */}
+        <ThemeToggle />
+
         <Button
           variant="outline"
           size="icon"
           onClick={() => setAboutOpen(true)}
           title="About ColorMesh"
-          className="h-9 w-9 md:h-10 md:w-10"
+          className={ICON_BTN}
         >
           <Info className="w-4 h-4" />
         </Button>
-
-        {/* Theme Toggle */}
-        <ThemeToggle />
       </div>
 
       {/* About Dialog */}
@@ -136,6 +121,19 @@ export function ControlsToolbar({
           </DialogHeader>
           
           <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-foreground">New here?</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleShowTour}
+                className="w-full justify-start gap-2"
+              >
+                <HelpCircle className="w-4 h-4" />
+                How to use ColorMesh
+              </Button>
+            </div>
+
             <div className="space-y-2">
               <p className="text-sm font-medium text-foreground">Open Source</p>
               <a
@@ -154,12 +152,12 @@ export function ControlsToolbar({
             <div className="space-y-2">
               <p className="text-sm font-medium text-foreground">Creator</p>
               <a
-                href="https://www.yshvrdhn.in/"
+                href="https://www.okyash.com/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-accent hover:underline flex items-center gap-2"
               >
-                yshvrdhn.in
+               okyash.com
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>

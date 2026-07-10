@@ -6,11 +6,10 @@ import './globals.css'
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
-// TODO: point this at your own deployed domain before going live.
-const baseUrl = 'https://colormesh.net';
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
 export const metadata: Metadata = {
-  title: 'ColorMesh - Color Extraction Tool',
+  title: 'ColorMesh - Simple Color Extraction Tool',
   description: 'Extract, sample, and analyze colors from images with precision. Perfect for designers, developers, and creative professionals. Use our color picker and hex color sampler tool.',
   keywords: ['color picker', 'image color extractor', 'hex color sampler', 'color extraction', 'color analysis', 'design tool', 'color palette generator'],
   authors: [{ name: 'ColorMesh' }],
@@ -49,11 +48,10 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     url: baseUrl,
-    title: 'ColorMesh - Color Extraction Tool',
+    title: 'ColorMesh - AI-Powered Color Extraction Tool',
     description: 'Extract, sample, and analyze colors from images with precision. Perfect for designers and developers.',
     siteName: 'ColorMesh',
     locale: 'en_US',
-    // TODO: add a public/og-image.png (1200x630) for rich social previews.
     images: [
       {
         url: `${baseUrl}/og-image.png`,
@@ -67,22 +65,23 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     site: '@colormesh',
-    title: 'ColorMesh - Color Extraction Tool',
+    title: 'ColorMesh - AI-Powered Color Extraction Tool',
     description: 'Extract, sample, and analyze colors from images with precision.',
     images: [`${baseUrl}/og-image.png`],
   },
   alternates: {
     canonical: baseUrl,
   },
-  // TODO: add your own Google Search Console verification code if needed:
-  // verification: { google: 'your-verification-code' },
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
+  },
 }
 
 const jsonLdSchema = {
   '@context': 'https://schema.org',
   '@type': 'WebApplication',
   name: 'ColorMesh',
-  description: 'Color extraction and analysis tool for designers and developers',
+  description: 'AI-powered color extraction and analysis tool for designers and developers',
   url: baseUrl,
   applicationCategory: 'DesignApplication',
   offers: {

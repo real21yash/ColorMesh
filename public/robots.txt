@@ -1,5 +1,34 @@
-# ColorMesh robots.txt
+# ColorMesh Robot Configuration
+# Allow all crawlers to index the site
+
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /api/internal
+Disallow: /_next
+Disallow: /private
 
-Sitemap: https://colormesh.net/sitemap.xml
+# Specific crawler permissions
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+# Sitemap location — update this to your deployed domain
+Sitemap: https://your-domain.com/sitemap.xml
+
+# Crawl delay (optional, in seconds)
+Crawl-delay: 1
