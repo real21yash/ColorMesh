@@ -5,11 +5,38 @@ import { ImageCanvas } from './image-canvas';
 import { ColorSidebar } from './color-sidebar';
 import { ControlsToolbar } from './controls-toolbar';
 import { type ColorSample } from '@/lib/color-utils';
-import { exportAsJSON, exportAsCSV, downloadFile, downloadBlob, hexToRgb, rgbToString } from '@/lib/color-utils';
+import { exportAsJSON, exportAsCSV, downloadFile, downloadBlob, hexToRgb, rgbToString, colorDistance } from '@/lib/color-utils';
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
-import { Menu, Pipette, Check, X as XIcon } from 'lucide-react';
-import { OnboardingTour } from './onboarding-tour';
+import { Menu, Pipette, Check, X as XIcon, UploadCloud, SlidersHorizontal, Palette } from 'lucide-react';
+import { OnboardingTour, type OnboardingStep } from './onboarding-tour';
+
+const COLOR_EXTRACTOR_TOUR_STEPS: OnboardingStep[] = [
+  {
+    icon: UploadCloud,
+    title: 'Add an image',
+    description:
+      'Drag & drop an image onto the canvas, or click the dashed area to browse your files.',
+  },
+  {
+    icon: SlidersHorizontal,
+    title: 'Set your grid',
+    description:
+      'Use the Grid slider to choose how many cells to sample. Each cell shows its dominant color, so fine details can get averaged out. Toggle the eye icon to preview the grid on top of your image.',
+  },
+  {
+    icon: Pipette,
+    title: 'Need an exact color?',
+    description:
+      'The dropper tool samples one exact pixel, no averaging. On Chrome or Edge it can pick any color on your whole screen; elsewhere, click it then click a spot on your image.',
+  },
+  {
+    icon: Palette,
+    title: 'Build your palette',
+    description:
+      'Click swatches in the sidebar to add them to your palette, lock your favorites, then export as JSON, CSV, text, or a PNG image.',
+  },
+];
 
 const ONBOARDING_STORAGE_KEY = 'colormesh-onboarding-dismissed';
 
@@ -21,6 +48,7 @@ export function ColorExtractor() {
   const [selectedCell, setSelectedCell] = useState<{ row: number; col: number } | null>(null);
   const [selectedPalette, setSelectedPalette] = useState<ColorSample[]>([]);
   const [lockedColors, setLockedColors] = useState<Set<string>>(new Set());
+  const [randomizeCount, setRandomizeCount] = useState(6);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
   const [pickerActive, setPickerActive] = useState(false);
@@ -236,37 +264,40 @@ export function ColorExtractor() {
     setLockedColors(newLocked);
   };
 
+  /** Minimum redmean color distance for two swatches to count as visually distinct
+   *  in a randomized palette (empirically chosen). */
+  const MIN_DISTINCT_DISTANCE = 45;
+
   const handleRandomizePalette = () => {
     if (colors.length === 0) return;
 
     const flatColors = colors.flat();
-    
-    // Keep locked colors in their positions
+
+    // Keep locked colors in place; fill remaining slots from a shuffled pool of
+    // the rest, skipping anything too close (by colorDistance) to what's already
+    // chosen. Stops early rather than padding with near-duplicate shades.
     const lockedPaletteColors = selectedPalette.filter(c => lockedColors.has(c.hex));
     const lockedHexes = new Set(lockedPaletteColors.map(c => c.hex));
-    
-    // Get available colors (not already locked in palette)
     const availableColors = flatColors.filter(c => !lockedHexes.has(c.hex));
-    
-    // Shuffle available colors
     const shuffled = [...availableColors].sort(() => Math.random() - 0.5);
-    
-    // Calculate how many slots to fill (6 total minus locked)
-    const slotsToFill = 6 - lockedPaletteColors.length;
-    
-    // Pick random colors for remaining slots (no duplicates)
+    const slotsToFill = Math.max(0, randomizeCount - lockedPaletteColors.length);
+
     const newRandomColors: ColorSample[] = [];
     const usedHexes = new Set(lockedHexes);
-    
+    const chosenForDistance = [...lockedPaletteColors];
+
     for (const color of shuffled) {
       if (newRandomColors.length >= slotsToFill) break;
-      if (!usedHexes.has(color.hex)) {
-        newRandomColors.push(color);
-        usedHexes.add(color.hex);
-      }
+      if (usedHexes.has(color.hex)) continue;
+      const tooSimilar = chosenForDistance.some(
+        (c) => colorDistance(c.hex, color.hex) < MIN_DISTINCT_DISTANCE
+      );
+      if (tooSimilar) continue;
+      newRandomColors.push(color);
+      chosenForDistance.push(color);
+      usedHexes.add(color.hex);
     }
-    
-    // Combine locked colors with new random colors
+
     setSelectedPalette([...lockedPaletteColors, ...newRandomColors]);
   };
 
@@ -282,6 +313,8 @@ export function ColorExtractor() {
     lockedColors,
     onToggleLock: handleToggleLock,
     onRandomizePalette: handleRandomizePalette,
+    randomizeCount,
+    onRandomizeCountChange: setRandomizeCount,
   };
 
   return (
@@ -298,7 +331,12 @@ export function ColorExtractor() {
       />
 
       {/* First-time user walkthrough */}
-      <OnboardingTour open={tourOpen} onDismiss={handleDismissTour} />
+      <OnboardingTour
+        open={tourOpen}
+        onDismiss={handleDismissTour}
+        steps={COLOR_EXTRACTOR_TOUR_STEPS}
+        ariaLabel="Getting started with ColorMesh"
+      />
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden flex-col lg:flex-row">

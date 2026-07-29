@@ -1,89 +1,134 @@
 # ColorMesh
 
-Extract, sample, and build color palettes from any image, right in the browser.
+A small toolbox of color and design utilities.
 
-ColorMesh is a fully client-side app — images never leave your machine, and
-running it locally requires no accounts, API keys, or backend services.
+- **Color Extractor** — sample dominant colors from any image (fully client-side)
+- **Style Extractor** — pull colors, fonts, radius, shadows, spacing, buttons,
+  and CSS variables from a live website's stylesheets
 
-## Features
+## Tech Stack
 
-- Drag-and-drop, click-to-browse, or eyedropper — three ways to grab a color
-- Adjustable sampling grid (2x2 to 12x12), each cell showing its dominant color
-- Native `EyeDropper` API support for exact, pixel-level color picks (falls back
-  to click-to-sample on browsers without it, e.g. Firefox/Safari)
-- Click any grid cell to inspect its HEX/RGB and add it to your palette
-- Build a 6-color palette, lock favorites, and randomize the rest
-- Export sampled colors as JSON/CSV, or export your palette as text/PNG
-- Light/dark theme, and a skippable first-time walkthrough
+- [Next.js 16](https://nextjs.org) (App Router, static export) + React 19 + TypeScript
+- [Tailwind CSS 4](https://tailwindcss.com) with a small set of hand-picked
+  [shadcn/ui](https://ui.shadcn.com) primitives (button, dialog, dropdown-menu,
+  drawer, input, slider)
+- [Radix UI](https://www.radix-ui.com) primitives + [vaul](https://vaul.emilkowal.ski) (drawer) + [jsPDF](https://github.com/parallax/jsPDF) (report export)
+- Cloudflare Pages + Pages Functions (Workers runtime) for the Style Extractor's backend
+- [Wrangler](https://developers.cloudflare.com/workers/wrangler/) for local Worker testing and deployment
 
-## Prerequisites
+## Architecture
 
-- [Node.js](https://nodejs.org/) 18.18 or newer
-- npm (bundled with Node) or [pnpm](https://pnpm.io/) — both lockfiles are provided
+```
+Browser
+  ↓
+Static Next.js frontend (Cloudflare Pages)
+  ↓ POST /api/style-extract
+Cloudflare Pages Function (Worker)
+  ↓ fetch target URL → parse HTML → find <link rel=stylesheet> → fetch CSS → parse CSS
+Structured JSON response
+```
+
+- The frontend (`app/`, `components/`) is a fully static export (`output: 'export'`
+  in `next.config.js`) — no Next.js server, no API routes in `app/`.
+- The backend lives entirely in `functions/` as a **Cloudflare Pages Function**,
+  which Cloudflare deploys as a Worker automatically alongside the static build.
+  No Node.js server, no Puppeteer/Playwright/Chromium — just `fetch` + regex-based
+  HTML/CSS parsing, all Workers-runtime-compatible.
+- `functions/lib/` is a modular pipeline — each stage is a separate file so new
+  extractors (gradients, animations, icons, logos, accessibility metrics, ...)
+  can be added without touching the others:
+  - `url-validator.ts` — normalizes input, blocks private/local network targets
+  - `html-parser.ts` — finds `<link rel="stylesheet">` hrefs and `<style>` blocks
+  - `css-fetcher.ts` — fetches the page + stylesheets (timeouts, size caps)
+  - `css-parser.ts` — regex extraction of raw colors/fonts/radius/shadows/spacing/variables/buttons
+  - `token-extractor.ts` — turns raw values into color roles (primary/secondary/background/text) + button summary
+  - `tailwind-generator.ts` — generates a Tailwind `theme.extend`-shaped object
+  - `confidence-scorer.ts` — heuristic 0–100 confidence per category
+  - `response-formatter.ts` — assembles the final JSON + shared CORS/response helper
+
+## Project Structure
+
+```
+app/                    Next.js App Router pages (/, /toolbox, /style-extractor)
+components/             Color Extractor, Style Extractor, and shared UI
+components/ui/          Hand-picked shadcn/ui primitives actually used by the app
+lib/                     Client-side helpers: color math, canvas sampling, PDF report generation
+hooks/                   (none currently — removed unused shadcn boilerplate hooks)
+functions/api/           Cloudflare Pages Function: POST /api/style-extract
+functions/lib/           Backend pipeline used only by the Worker (see Architecture above)
+public/                  Static assets, fonts, icons
+```
 
 ## Getting Started
 
 ```bash
-git clone <this-repo-url>
-cd colormesh
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see the app.
+Open [http://localhost:3000](http://localhost:3000) for the Color Extractor, or
+[http://localhost:3000/toolbox](http://localhost:3000/toolbox) for both tools.
+
+Note: `next dev` only runs the frontend. The Style Extractor's `/api/style-extract`
+Worker route won't respond under plain `pnpm dev` — use `pnpm pages:dev` below
+to test the full stack locally exactly as it runs in production.
+
+## Building
+
+```bash
+pnpm build
+```
+
+Outputs a static export to `out/`.
+
+## Testing the Full Stack Locally (frontend + Worker)
+
+```bash
+pnpm pages:dev
+```
+
+This builds the static export and runs it through `wrangler pages dev`, which
+serves both the static assets and the `functions/` Worker route together,
+matching production Cloudflare Pages behavior.
+
+## Deploying to Cloudflare Pages
+
+1. Push this repo to GitHub/GitLab and connect it in the Cloudflare Pages dashboard,
+   or deploy directly with Wrangler: `npx wrangler pages deploy out`
+2. Build command: `pnpm build`
+3. Build output directory: `out`
+4. Cloudflare auto-detects the `functions/` directory and deploys it as a Worker
+   alongside the static site — no separate Worker deployment step needed.
 
 ## Environment Variables
 
-ColorMesh needs **no secrets or API keys** to run — it's entirely client-side.
-Copy `.env.example` to `.env.local` if you want to customize the optional SEO
-metadata:
+Neither the frontend nor the Worker currently requires any secrets or API keys —
+there's no `.env` file to set up to run this project locally or in production.
 
-```bash
-cp .env.example .env.local
-```
+## Features
 
-| Variable | Required | Purpose |
-|---|---|---|
-| `NEXT_PUBLIC_SITE_URL` | No | Public URL used for canonical/Open Graph metadata. Defaults to `http://localhost:3000`. |
-| `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` | No | Google Search Console verification code, only needed if you deploy and verify a domain. |
+### Color Extractor
+- Drag-and-drop, click-to-browse, or eyedropper — three ways to grab a color
+- Adjustable sampling grid (2x2 to 12x12), each cell showing its dominant color
+- Native `EyeDropper` API support, with a click-to-sample fallback
+- Build a 6-color palette, lock favorites, and randomize the rest
+- Export sampled colors as JSON/CSV, or export your palette as text/PNG
 
-## Building for Production
+### Style Extractor
+- Paste any public URL to fetch its linked + inline CSS
+- Extracts primary/secondary/background/text colors, a full palette, font
+  families, font-size/line-height pairs, border-radius, box-shadows, a spacing
+  scale, `:root` CSS custom properties, and button styles
+- Per-category confidence scores based on how much was actually found
+- Copy results as JSON or a generated Tailwind config snippet
+- Note: parses the site's actual stylesheets rather than rendering the page,
+  so styles injected purely by client-side JS won't be picked up
 
-This project is configured for static export (`output: 'export'` in
-`next.config.js`), so the build produces a folder of static files you can
-host anywhere (Nginx, Caddy, Vercel, Netlify, GitHub Pages, S3, etc.):
+## License
 
-```bash
-npm run build
-```
-
-The static site is generated in the `out/` directory. Serve it with any static
-file server, for example:
-
-```bash
-npx serve out
-```
-
-Before deploying to a real domain, update:
-- `NEXT_PUBLIC_SITE_URL` in your environment
-- The placeholder domain in `public/robots.txt` and `public/sitemap.xml`
-  (these are static files and aren't templated at build time)
-
-## Project Structure
-
-- `app/` — Next.js App Router entry point and global layout/metadata
-- `components/` — application UI (canvas, toolbar, sidebar, onboarding) and
-  `components/ui/` (shadcn/ui primitives)
-- `lib/` — color sampling/export utilities (k-means dominant-color extraction,
-  HEX/RGB conversion, JSON/CSV/PNG export)
-
-## Known Gaps
-
-- `app/layout.tsx` references `/og-image.png` for social share previews, but
-  no such file exists in `public/`. Add a 1200×630 PNG there (or edit the
-  `openGraph`/`twitter` metadata in `app/layout.tsx`) before relying on link
-  previews.
+MIT — see [LICENSE](./LICENSE).
 
 ## Learn More
 
-- [Next.js Documentation](https://nextjs.org/docs)
+- [Next.js Static Exports](https://nextjs.org/docs/app/building-your-application/deploying/static-exports)
+- [Cloudflare Pages Functions](https://developers.cloudflare.com/pages/functions/)

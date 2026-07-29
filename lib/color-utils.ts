@@ -1,7 +1,3 @@
-/**
- * Color utility functions for the Color Extractor
- */
-
 export interface ColorSample {
   hex: string;
   rgb: string;
@@ -37,9 +33,6 @@ export function getContrastTextColor(r: number, g: number, b: number): string {
   return luminance > 0.6 ? '#1a1a1a' : '#ffffff';
 }
 
-/**
- * Convert RGB values to HEX format
- */
 export function rgbToHex(r: number, g: number, b: number): string {
   return (
     '#' +
@@ -53,16 +46,10 @@ export function rgbToHex(r: number, g: number, b: number): string {
   );
 }
 
-/**
- * Convert RGB values to RGB string format
- */
 export function rgbToString(r: number, g: number, b: number): string {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
-/**
- * Convert a HEX color string to RGB values
- */
 export function hexToRgb(hex: string): { r: number; g: number; b: number } {
   const clean = hex.replace('#', '');
   const full =
@@ -73,6 +60,22 @@ export function hexToRgb(hex: string): { r: number; g: number; b: number } {
   const g = parseInt(full.substring(2, 4), 16) || 0;
   const b = parseInt(full.substring(4, 6), 16) || 0;
   return { r, g, b };
+}
+
+/**
+ * Perceptually-weighted distance between two hex colors (the "redmean" approximation
+ * of CIE76 delta-E — cheap to compute but much closer to how different two colors
+ * actually *look* than plain Euclidean RGB distance). Roughly 0 (identical) to ~765
+ * (black vs white).
+ */
+export function colorDistance(hexA: string, hexB: string): number {
+  const a = hexToRgb(hexA);
+  const b = hexToRgb(hexB);
+  const rMean = (a.r + b.r) / 2;
+  const dr = a.r - b.r;
+  const dg = a.g - b.g;
+  const db = a.b - b.b;
+  return Math.sqrt((2 + rMean / 256) * dr * dr + 4 * dg * dg + (2 + (255 - rMean) / 256) * db * db);
 }
 
 type RGB = [number, number, number];
@@ -94,9 +97,7 @@ function nearestCentroidIndex(pixel: RGB, centroids: RGB[]): number {
   return nearest;
 }
 
-/**
- * Get dominant color from an image canvas in a specific cell using k-means clustering
- */
+/** Dominant color of a canvas region via k-means clustering (k=3) */
 export function getDominantColor(
   canvas: HTMLCanvasElement,
   startX: number,
@@ -188,9 +189,6 @@ export function getDominantColor(
   };
 }
 
-/**
- * Export colors as JSON
- */
 export function exportAsJSON(colors: ColorSample[][]): string {
   const formattedColors = colors.map((row) =>
     row.map((color) => ({
@@ -201,9 +199,6 @@ export function exportAsJSON(colors: ColorSample[][]): string {
   return JSON.stringify(formattedColors, null, 2);
 }
 
-/**
- * Export colors as CSV
- */
 export function exportAsCSV(colors: ColorSample[][]): string {
   let csv = 'Row,Column,HEX,RGB\n';
   colors.forEach((row, rowIndex) => {
@@ -214,14 +209,8 @@ export function exportAsCSV(colors: ColorSample[][]): string {
   return csv;
 }
 
-/**
- * Backward compatibility: alias getDominantColor as getAverageColor
- */
 export const getAverageColor = getDominantColor;
 
-/**
- * Trigger a browser download for a Blob
- */
 export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -233,9 +222,6 @@ export function downloadBlob(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
-/**
- * Download file helper
- */
 export function downloadFile(content: string, filename: string): void {
   downloadBlob(new Blob([content], { type: 'text/plain' }), filename);
 }

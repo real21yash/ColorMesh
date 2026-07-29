@@ -1,12 +1,36 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import localFont from 'next/font/local'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
+const aeonik = localFont({
+  src: [
+    { path: '../public/fonts/Aeonik-Thin.ttf', weight: '100', style: 'normal' },
+    { path: '../public/fonts/Aeonik-ThinItalic.ttf', weight: '100', style: 'italic' },
+    { path: '../public/fonts/Aeonik-Air.ttf', weight: '200', style: 'normal' },
+    { path: '../public/fonts/Aeonik-AirItalic.ttf', weight: '200', style: 'italic' },
+    { path: '../public/fonts/Aeonik-Light.ttf', weight: '300', style: 'normal' },
+    { path: '../public/fonts/Aeonik-LightItalic.ttf', weight: '300', style: 'italic' },
+    { path: '../public/fonts/Aeonik-Regular.ttf', weight: '400', style: 'normal' },
+    { path: '../public/fonts/Aeonik-RegularItalic.ttf', weight: '400', style: 'italic' },
+    { path: '../public/fonts/Aeonik-Medium.ttf', weight: '500', style: 'normal' },
+    { path: '../public/fonts/Aeonik-MediumItalic.ttf', weight: '500', style: 'italic' },
+    { path: '../public/fonts/Aeonik-Bold.ttf', weight: '700', style: 'normal' },
+    { path: '../public/fonts/Aeonik-BoldItalic.ttf', weight: '700', style: 'italic' },
+    { path: '../public/fonts/Aeonik-Black.ttf', weight: '900', style: 'normal' },
+    { path: '../public/fonts/Aeonik-BlackItalic.ttf', weight: '900', style: 'italic' },
+  ],
+  variable: '--font-aeonik',
+  display: 'swap',
+})
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+const vt323 = localFont({
+  src: [{ path: '../public/fonts/VT323-Regular.ttf', weight: '400', style: 'normal' }],
+  variable: '--font-vt323',
+  display: 'swap',
+})
+
+const baseUrl = 'https://colormesh.net';
 
 export const metadata: Metadata = {
   title: 'ColorMesh - Simple Color Extraction Tool',
@@ -31,19 +55,19 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: '/icon-light-32x32.png',
+        url: '/new-icon-light-32x32.png',
         media: '(prefers-color-scheme: light)',
       },
       {
-        url: '/icon-dark-32x32.png',
+        url: '/new-icon-dark-32x32.png',
         media: '(prefers-color-scheme: dark)',
       },
       {
-        url: '/icon.svg',
+        url: '/new-icon.svg',
         type: 'image/svg+xml',
       },
     ],
-    apple: '/apple-icon.png',
+    apple: '/new-apple-icon.png',
   },
   openGraph: {
     type: 'website',
@@ -71,9 +95,6 @@ export const metadata: Metadata = {
   },
   alternates: {
     canonical: baseUrl,
-  },
-  verification: {
-    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
   },
 }
 
@@ -132,7 +153,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="font-sans antialiased">
+      <body className={`${aeonik.variable} ${vt323.variable} font-sans antialiased`}>
         <ThemeProvider>
           {children}
         </ThemeProvider>

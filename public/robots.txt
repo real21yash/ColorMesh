@@ -27,8 +27,8 @@ Allow: /
 User-agent: Claude-Web
 Allow: /
 
-# Sitemap location — update this to your deployed domain
-Sitemap: https://your-domain.com/sitemap.xml
+# Sitemap location
+Sitemap: https://colormesh.net/sitemap.xml
 
 # Crawl delay (optional, in seconds)
 Crawl-delay: 1

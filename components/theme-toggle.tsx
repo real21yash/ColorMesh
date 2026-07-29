@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Moon, Sun } from 'lucide-react';
 
-export function ThemeToggle() {
+export function ThemeToggle({ className }: { className?: string }) {
   const [isDark, setIsDark] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -38,6 +38,7 @@ export function ThemeToggle() {
       size="icon"
       onClick={toggleTheme}
       title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+      className={className}
     >
       {isDark ? (
         <Sun className="w-4 h-4" />

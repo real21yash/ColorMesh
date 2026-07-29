@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Eye, EyeOff, Info, HelpCircle, Pipette } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
-import { ThemeToggle } from '@/components/theme-toggle';
+import { AppHeader, ICON_BTN } from '@/components/app-header';
 import {
   Dialog,
   DialogContent,
@@ -21,8 +21,6 @@ interface ControlsToolbarProps {
   pickerActive: boolean;
   onPickColor: () => void;
 }
-
-const ICON_BTN = 'h-9 w-9 md:h-10 md:w-10';
 
 export function ControlsToolbar({
   gridSize,
@@ -41,77 +39,65 @@ export function ControlsToolbar({
   };
 
   return (
-    <div className="bg-card border-b border-border p-4 flex flex-col gap-4 md:flex-row md:items-center md:gap-6">
-      {/* Logo - always visible */}
-      <div className="flex items-center gap-3 md:gap-4 md:flex-shrink-0">
-        <img 
-          src="/logo.svg" 
-          alt="Color MESH" 
-          className="h-7 md:h-8 w-auto"
-        />
-      </div>
+    <>
+      <AppHeader
+        title="Color Extractor"
+        middleContent={
+          <div className="flex-1 flex flex-col gap-2 md:flex-row md:items-center md:gap-4 min-w-0">
+            <label htmlFor="grid-size" className="text-sm font-medium text-foreground whitespace-nowrap">
+              Grid:
+            </label>
+            <div className="flex items-center gap-2 md:gap-3 flex-1 md:max-w-xs">
+              <Slider
+                id="grid-size"
+                min={2}
+                max={12}
+                step={1}
+                value={[gridSize]}
+                onValueChange={(value) => onGridSizeChange(value[0])}
+                className="flex-1"
+              />
+              <span className="text-sm font-semibold text-foreground w-10 md:w-12 text-right flex-shrink-0">
+                {gridSize}x{gridSize}
+              </span>
+            </div>
+          </div>
+        }
+        actions={
+          <>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={onPickColor}
+              title="Pick a color from the image"
+              aria-pressed={pickerActive}
+              className={`${ICON_BTN} ${pickerActive ? 'bg-accent/25 border-accent/60 text-accent' : ''}`}
+            >
+              <Pipette className="w-4 h-4" />
+            </Button>
 
-      {/* Grid Size Slider */}
-      <div className="flex-1 flex flex-col gap-2 md:flex-row md:items-center md:gap-4 min-w-0">
-        <label htmlFor="grid-size" className="text-sm font-medium text-foreground whitespace-nowrap">
-          Grid:
-        </label>
-        <div className="flex items-center gap-2 md:gap-3 flex-1 md:max-w-xs">
-          <Slider
-            id="grid-size"
-            min={2}
-            max={12}
-            step={1}
-            value={[gridSize]}
-            onValueChange={(value) => onGridSizeChange(value[0])}
-            className="flex-1"
-          />
-          <span className="text-sm font-semibold text-foreground w-10 md:w-12 text-right flex-shrink-0">
-            {gridSize}x{gridSize}
-          </span>
-        </div>
-      </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => onGridVisibilityChange(!showGrid)}
+              title={showGrid ? 'Hide grid' : 'Show grid'}
+              className={ICON_BTN}
+            >
+              {showGrid ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+            </Button>
 
-      {/* Dropper, Grid Visibility, Theme, and About */}
-      <div className="flex items-center gap-2 justify-end">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={onPickColor}
-          title="Pick a color from the image"
-          aria-pressed={pickerActive}
-          className={`${ICON_BTN} ${pickerActive ? 'bg-accent/25 border-accent/60 text-accent' : ''}`}
-        >
-          <Pipette className="w-4 h-4" />
-        </Button>
-
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => onGridVisibilityChange(!showGrid)}
-          title={showGrid ? 'Hide grid' : 'Show grid'}
-          className={ICON_BTN}
-        >
-          {showGrid ? (
-            <Eye className="w-4 h-4" />
-          ) : (
-            <EyeOff className="w-4 h-4" />
-          )}
-        </Button>
-
-        {/* Theme Toggle */}
-        <ThemeToggle />
-
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setAboutOpen(true)}
-          title="About ColorMesh"
-          className={ICON_BTN}
-        >
-          <Info className="w-4 h-4" />
-        </Button>
-      </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setAboutOpen(true)}
+              title="About ColorMesh"
+              className={ICON_BTN}
+            >
+              <Info className="w-4 h-4" />
+            </Button>
+          </>
+        }
+      />
 
       {/* About Dialog */}
       <Dialog open={aboutOpen} onOpenChange={setAboutOpen}>
@@ -119,7 +105,7 @@ export function ControlsToolbar({
           <DialogHeader>
             <DialogTitle>About ColorMesh</DialogTitle>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <p className="text-sm font-medium text-foreground">New here?</p>
@@ -172,6 +158,6 @@ export function ControlsToolbar({
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

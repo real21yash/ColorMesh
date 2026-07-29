@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
 import { Copy, Check, Lock, LockOpen, Shuffle, X, Plus, Trash2 } from 'lucide-react';
 import { type ColorSample } from '@/lib/color-utils';
 
@@ -17,6 +18,8 @@ interface ColorSidebarProps {
   lockedColors?: Set<string>;
   onToggleLock?: (hex: string) => void;
   onRandomizePalette?: () => void;
+  randomizeCount?: number;
+  onRandomizeCountChange?: (count: number) => void;
 }
 
 const MAX_PALETTE_SIZE = 6;
@@ -34,6 +37,8 @@ export function ColorSidebar({
   lockedColors = new Set(),
   onToggleLock,
   onRandomizePalette,
+  randomizeCount = 6,
+  onRandomizeCountChange,
 }: ColorSidebarProps) {
   const [copiedValue, setCopiedValue] = useState<string | null>(null);
 
@@ -219,6 +224,23 @@ export function ColorSidebar({
                 </div>
               ))}
             </div>
+
+            {onRandomizeCountChange && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Randomize count</span>
+                <Slider
+                  min={2}
+                  max={MAX_PALETTE_SIZE}
+                  step={1}
+                  value={[randomizeCount]}
+                  onValueChange={(value) => onRandomizeCountChange(value[0])}
+                  className="flex-1"
+                />
+                <span className="text-xs font-semibold text-foreground w-4 text-right flex-shrink-0">
+                  {randomizeCount}
+                </span>
+              </div>
+            )}
 
             <Button
               onClick={() => onRandomizePalette?.()}

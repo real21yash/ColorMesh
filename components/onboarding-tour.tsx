@@ -2,44 +2,25 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { UploadCloud, SlidersHorizontal, Pipette, Palette, X } from 'lucide-react';
+import { X, type LucideIcon } from 'lucide-react';
 
-const steps = [
-  {
-    icon: UploadCloud,
-    title: 'Add an image',
-    description:
-      'Drag & drop an image onto the canvas, or click the dashed area to browse your files.',
-  },
-  {
-    icon: SlidersHorizontal,
-    title: 'Set your grid',
-    description:
-      'Use the Grid slider to choose how many cells to sample. Each cell shows its dominant color, so fine details can get averaged out. Toggle the eye icon to preview the grid on top of your image.',
-  },
-  {
-    icon: Pipette,
-    title: 'Need an exact color?',
-    description:
-      'The dropper tool samples one exact pixel, no averaging. On Chrome or Edge it can pick any color on your whole screen; elsewhere, click it then click a spot on your image.',
-  },
-  {
-    icon: Palette,
-    title: 'Build your palette',
-    description:
-      'Click swatches in the sidebar to add them to your palette, lock your favorites, then export as JSON, CSV, text, or a PNG image.',
-  },
-];
+export interface OnboardingStep {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+}
 
 interface OnboardingTourProps {
   open: boolean;
   onDismiss: () => void;
+  steps: OnboardingStep[];
+  ariaLabel?: string;
 }
 
-export function OnboardingTour({ open, onDismiss }: OnboardingTourProps) {
+export function OnboardingTour({ open, onDismiss, steps, ariaLabel = 'Getting started' }: OnboardingTourProps) {
   const [stepIndex, setStepIndex] = useState(0);
 
-  if (!open) return null;
+  if (!open || steps.length === 0) return null;
 
   const step = steps[stepIndex];
   const isLast = stepIndex === steps.length - 1;
@@ -53,7 +34,7 @@ export function OnboardingTour({ open, onDismiss }: OnboardingTourProps) {
   return (
     <div
       role="dialog"
-      aria-label="Getting started with ColorMesh"
+      aria-label={ariaLabel}
       className="fixed z-50 bottom-6 left-6 w-[min(22rem,calc(100vw-3rem))] rounded-xl border border-border bg-card shadow-2xl p-5 animate-in fade-in slide-in-from-bottom-4 duration-300"
     >
       <button
